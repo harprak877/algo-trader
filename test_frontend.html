@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Backend API Functionality Test</h1>
+    <p>This page tests all the backend APIs to ensure they're working correctly.</p>
+
+    <div class="test-section">
+        <h3>1. Dashboard API Test</h3>
+        <button onclick="testDashboard()">Test Dashboard API</button>
+        <div id="dashboard-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Performance API Test</h3>
+        <button onclick="testPerformance()">Test Performance API</button>
+        <div id="performance-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Settings API Test</h3>
+        <button onclick="testSettings()">Test Settings API</button>
+        <div id="settings-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Chart Data API Test</h3>
+        <button onclick="testChartData()">Test Chart Data API</button>
+        <div id="chart-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. Live Trading Test</h3>
+        <button onclick="testStartTrading()">Start Trading</button>
+        <button onclick="testStopTrading()">Stop Trading</button>
+        <div id="trading-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>6. Backtest API Test</h3>
+        <button onclick="testBacktest()">Test Backtest API</button>
+        <div id="backtest-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>7. WebSocket Test</h3>
+        <button onclick="testWebSocket()">Test WebSocket</button>
+        <div id="websocket-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        function showResult(elementId, success, data) {
+            const element = document.getElementById(elementId);
+            element.className = success ? 'test-section success' : 'test-section error';
+            element.innerHTML = `
+                <h4>${success ? '✅ SUCCESS' : '❌ ERROR'}</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+
+        async function testDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/api/dashboard`);
+                const data = await response.json();
+                showResult('dashboard-result', true, data);
+            } catch (error) {
+                showResult('dashboard-result', false, { error: error.message });
+            }
+        }
+
+        async function testPerformance() {
+            try {
+                const response = await fetch(`${API_BASE}/api/performance`);
+                const data = await response.json();
+                showResult('performance-result', true, data);
+            } catch (error) {
+                showResult('performance-result', false, { error: error.message });
+            }
+        }
+
+        async function testSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/api/settings`);
+                const data = await response.json();
+                showResult('settings-result', true, data);
+            } catch (error) {
+                showResult('settings-result', false, { error: error.message });
+            }
+        }
+
+        async function testChartData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/chart-data/AAPL?days=7`);
+                const data = await response.json();
+                showResult('chart-result', true, data);
+            } catch (error) {
+                showResult('chart-result', false, { error: error.message });
+            }
+        }
+
+        async function testStartTrading() {
+            try {
+                const response = await fetch(`${API_BASE}/api/live/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbols: ['AAPL', 'TSLA'] })
+                });
+                const data = await response.json();
+                showResult('trading-result', true, { action: 'start', data });
+            } catch (error) {
+                showResult('trading-result', false, { action: 'start', error: error.message });
+            }
+        }
+
+        async function testStopTrading() {
+            try {
+                const response = await fetch(`${API_BASE}/api/live/stop`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                showResult('trading-result', true, { action: 'stop', data });
+            } catch (error) {
+                showResult('trading-result', false, { action: 'stop', error: error.message });
+            }
+        }
+
+        async function testBacktest() {
+            try {
+                const response = await fetch(`${API_BASE}/api/backtest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start_date: '2025-01-01',
+                        end_date: '2025-08-12',
+                        symbols: ['AAPL'],
+                        short_sma: 20,
+                        long_sma: 50,
+                        stop_loss_pct: 3.0,
+                        take_profit_pct: 6.0,
+                        position_size_pct: 25.0
+                    })
+                });
+                const data = await response.json();
+                showResult('backtest-result', true, data);
+            } catch (error) {
+                showResult('backtest-result', false, { error: error.message });
+            }
+        }
+
+        function testWebSocket() {
+            try {
+                const ws = new WebSocket('ws://localhost:8000/ws');
+                
+                ws.onopen = function() {
+                    showResult('websocket-result', true, { status: 'WebSocket connected successfully' });
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    showResult('websocket-result', true, { 
+                        status: 'Message received', 
+                        message: data 
+                    });
+                };
+                
+                ws.onerror = function(error) {
+                    showResult('websocket-result', false, { error: 'WebSocket error occurred' });
+                };
+                
+                ws.onclose = function() {
+                    showResult('websocket-result', true, { status: 'WebSocket closed' });
+                };
+                
+                // Close after 5 seconds
+                setTimeout(() => ws.close(), 5000);
+                
+            } catch (error) {
+                showResult('websocket-result', false, { error: error.message });
+            }
+        }
+
+        // Auto-run all tests on page load
+        window.onload = function() {
+            setTimeout(() => {
+                testDashboard();
+                setTimeout(() => testPerformance(), 500);
+                setTimeout(() => testSettings(), 1000);
+                setTimeout(() => testChartData(), 1500);
+                setTimeout(() => testWebSocket(), 2000);
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

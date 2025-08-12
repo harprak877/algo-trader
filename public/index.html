@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot - Welcome</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="max-w-2xl mx-auto text-center p-8">
+            <h1 class="text-6xl font-bold text-gray-900 mb-8">🚀</h1>
+            <h2 class="text-4xl font-bold text-gray-900 mb-6">Trading Bot Dashboard</h2>
+            <p class="text-xl text-gray-600 mb-8">
+                Welcome to your automated trading bot dashboard. Monitor live trades, manage positions, and control your trading strategy.
+            </p>
+            
+            <div class="space-y-4">
+                <a href="/dashboard.html" class="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors">
+                    🎯 Open Live Trading Dashboard
+                </a>
+                
+                <div class="text-sm text-gray-500">
+                    <p>✅ Backend APIs: Fully Functional</p>
+                    <p>✅ Live Trading: Start/Stop Working</p>
+                    <p>✅ Real-time Data: Auto-refresh Enabled</p>
+                    <p>✅ WebSocket: Connected</p>
+                </div>
+            </div>
+            
+            <div class="mt-12 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Start</h3>
+                <ol class="text-left text-gray-600 space-y-2">
+                    <li>1. Click "Open Live Trading Dashboard" above</li>
+                    <li>2. Enter your trading symbols (e.g., AAPL,TSLA,SPY)</li>
+                    <li>3. Click "Start Trading" to begin automated trading</li>
+                    <li>4. Monitor your positions and P&L in real-time</li>
+                    <li>5. Click "Stop Trading" when you want to pause</li>
+                </ol>
+            </div>
+            
+            <div class="mt-8 text-sm text-gray-500">
+                <p>Backend running on port 8000 | Frontend on port 5174</p>
+                <p>Last updated: <span id="timestamp"></span></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>

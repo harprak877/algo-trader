@@ -1,0 +1,31 @@
+# Core dependencies
+pandas>=1.5.0
+numpy>=1.21.0
+PyYAML>=6.0
+
+# Data sources
+yfinance>=0.2.0
+
+# Alpaca API (optional - will fallback to yfinance if not available)
+alpaca-py>=0.12.0
+
+# Logging and console colors
+colorama>=0.4.6
+
+# Technical analysis (optional - pandas will be used as fallback)
+TA-Lib>=0.4.25
+
+# For better datetime handling
+python-dateutil>=2.8.0
+
+# HTML reporting and charts
+plotly>=5.0.0
+jinja2>=3.0.0
+
+# Web application
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+aiofiles>=0.23.0
+requests>=2.26.0
+websockets>=11.0.3

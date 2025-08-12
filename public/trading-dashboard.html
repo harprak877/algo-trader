@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Trading Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/recharts@2.15.4/umd/Recharts.min.js"></script>
+    <style>
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-idle { background-color: #6b7280; }
+        .status-starting { background-color: #f59e0b; }
+        .status-running { background-color: #10b981; }
+        .status-error { background-color: #ef4444; }
+        .status-stopped { background-color: #9ca3af; }
+        
+        .log-entry {
+            margin-bottom: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+        }
+        
+        .log-time { color: #9ca3af; }
+        .log-info { color: #10b981; }
+        .log-warn { color: #f59e0b; }
+        .log-error { color: #ef4444; }
+        
+        .chart-container {
+            height: 200px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen p-6">
+        <div class="max-w-7xl mx-auto space-y-6">
+            <!-- Header -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h1 class="text-3xl font-bold text-gray-900 mb-4">🚀 Live Trading Dashboard</h1>
+                
+                <!-- Status and Session Info -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <div id="status-dot" class="status-dot status-idle"></div>
+                            <span id="status-text" class="text-lg font-medium">Idle</span>
+                        </div>
+                        <div id="session-info" class="text-sm text-gray-600 hidden">
+                            Session: <code id="session-id" class="bg-gray-100 px-2 py-1 rounded"></code>
+                        </div>
+                    </div>
+                    
+                    <button
+                        id="reset-btn"
+                        class="text-sm text-gray-500 hover:text-gray-700 underline hidden"
+                    >
+                        Reset Session
+                    </button>
+                </div>
+
+                <!-- Error Banner -->
+                <div id="error-banner" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 hidden">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-red-600 font-medium">Error:</span>
+                            <span id="error-message" class="text-red-700"></span>
+                        </div>
+                        <button
+                            id="retry-btn"
+                            class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trading Controls -->
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex-1 min-w-64">
+                        <input
+                            type="text"
+                            id="symbols-input"
+                            value="AAPL,TSLA,SPY"
+                            placeholder="AAPL,TSLA,SPY"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+                    
+                    <button
+                        id="start-btn"
+                        class="px-6 py-2 rounded-lg font-medium transition-colors bg-green-600 text-white hover:bg-green-700"
+                    >
+                        Start Trading
+                    </button>
+                    
+                    <button
+                        id="stop-btn"
+                        class="px-6 py-2 rounded-lg font-medium transition-colors bg-red-600 text-white hover:bg-red-700 hidden"
+                    >
+                        Stop Trading
+                    </button>
+                </div>
+            </div>
+
+            <!-- Market Chart Panel -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Market Charts</h2>
+                
+                <div id="charts-container">
+                    <div class="text-center py-12 text-gray-500">
+                        <p>Select symbols and start trading to see market data</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Panel -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-900">Live Logs</h2>
+                    <div class="flex items-center space-x-2">
+                        <button
+                            id="auto-scroll-btn"
+                            class="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                        >
+                            Auto-scroll On
+                        </button>
+                        <button
+                            id="clear-logs-btn"
+                            class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <div 
+                    id="logs-container"
+                    class="bg-gray-900 text-green-400 p-4 rounded-lg h-64 overflow-y-auto"
+                >
+                    <p class="text-gray-500">No logs yet. Start trading to see live updates.</p>
+                </div>
+            </div>
+
+            <!-- Dev Info -->
+            <div class="bg-gray-800 text-green-400 rounded-xl p-6 font-mono text-sm">
+                <h3 class="text-lg font-semibold mb-4 text-white">🔧 Dev Info</h3>
+                <div class="space-y-2">
+                    <div>Session ID: <span id="dev-session-id">None</span></div>
+                    <div>Status: <span id="dev-status">idle</span></div>
+                    <div>Symbols: <span id="dev-symbols">None</span></div>
+                    <div>WebSocket: <span id="dev-websocket">Disconnected</span></div>
+                    <div>Total Ticks: <span id="dev-ticks">0</span></div>
+                    <div>Total Logs: <span id="dev-logs">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let state = {
+            sessionId: null,
+            status: 'idle',
+            symbols: [],
+            ticks: {},
+            logs: [],
+            isLogAutoScroll: true,
+            errorMessage: null,
+            socket: null,
+            tickCount: 0,
+            logCount: 0
+        };
+
+        // DOM elements
+        const elements = {
+            statusDot: document.getElementById('status-dot'),
+            statusText: document.getElementById('status-text'),
+            sessionInfo: document.getElementById('session-info'),
+            sessionId: document.getElementById('session-id'),
+            resetBtn: document.getElementById('reset-btn'),
+            errorBanner: document.getElementById('error-banner'),
+            errorMessage: document.getElementById('error-message'),
+            symbolsInput: document.getElementById('symbols-input'),
+            startBtn: document.getElementById('start-btn'),
+            stopBtn: document.getElementById('stop-btn'),
+            chartsContainer: document.getElementById('charts-container'),
+            logsContainer: document.getElementById('logs-container'),
+            autoScrollBtn: document.getElementById('auto-scroll-btn'),
+            clearLogsBtn: document.getElementById('clear-logs-btn'),
+            devSessionId: document.getElementById('dev-session-id'),
+            devStatus: document.getElementById('dev-status'),
+            devSymbols: document.getElementById('dev-symbols'),
+            devWebsocket: document.getElementById('dev-websocket'),
+            devTicks: document.getElementById('dev-ticks'),
+            devLogs: document.getElementById('dev-logs')
+        };
+
+        // Initialize dashboard
+        function initDashboard() {
+            console.log('🚀 Initializing trading dashboard...');
+            
+            // Add event listeners
+            elements.startBtn.addEventListener('click', startTrading);
+            elements.stopBtn.addEventListener('click', stopTrading);
+            elements.resetBtn.addEventListener('click', resetSession);
+            elements.retryBtn.addEventListener('click', startTrading);
+            elements.clearLogsBtn.addEventListener('click', clearLogs);
+            elements.autoScrollBtn.addEventListener('click', toggleAutoScroll);
+            
+            // Initial log
+            appendLog('info', 'Dashboard initialized and ready');
+            
+            console.log('✅ Dashboard initialized successfully');
+        }
+
+        // Start trading
+        async function startTrading() {
+            try {
+                const symbols = elements.symbolsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                
+                if (symbols.length === 0) {
+                    setError('Please select at least one symbol to trade');
+                    return;
+                }
+
+                console.log('🚀 Starting trading session with symbols:', symbols);
+                
+                // Update UI state
+                setStatus('starting');
+                setError(null);
+                elements.startBtn.disabled = true;
+                elements.startBtn.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <span>Starting...</span>
+                    </div>
+                `;
+                
+                // Call backend to start trading
+                const response = await fetch('/api/trading/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbols })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to start trading: ${response.statusText}`);
+                }
+
+                const { sessionId } = await response.json();
+                console.log('✅ Trading session started with ID:', sessionId);
+
+                // Initialize state
+                state.sessionId = sessionId;
+                state.symbols = symbols;
+                state.ticks = {};
+                symbols.forEach(symbol => {
+                    state.ticks[symbol] = [];
+                });
+
+                // Connect to WebSocket stream
+                const wsUrl = `ws://localhost:8000/ws/trading/stream?sessionId=${sessionId}`;
+                const socket = new WebSocket(wsUrl);
+
+                socket.onopen = () => {
+                    console.log('🔌 WebSocket connected for session:', sessionId);
+                    state.socket = socket;
+                    setStatus('running');
+                    updateUI();
+                    appendLog('info', `Trading session ${sessionId} started successfully`);
+                };
+
+                socket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('📨 WebSocket message received:', data);
+                        
+                        switch (data.type) {
+                            case 'tick':
+                                appendTick(data.symbol, { t: data.t, p: data.p });
+                                break;
+                            case 'log':
+                                appendLog(data.level || 'info', data.msg);
+                                break;
+                            case 'status':
+                                setStatus(data.value);
+                                break;
+                            case 'error':
+                                setError(data.message);
+                                setStatus('error');
+                                break;
+                            default:
+                                console.warn('Unknown message type:', data.type);
+                        }
+                    } catch (error) {
+                        console.error('Failed to parse WebSocket message:', error);
+                        appendLog('error', `Failed to parse message: ${error}`);
+                    }
+                };
+
+                socket.onerror = (error) => {
+                    console.error('❌ WebSocket error:', error);
+                    setError('WebSocket connection failed');
+                    setStatus('error');
+                };
+
+                socket.onclose = (event) => {
+                    console.log('🔌 WebSocket closed:', event.code, event.reason);
+                    if (state.status === 'running') {
+                        setError('WebSocket connection lost');
+                        setStatus('error');
+                    }
+                    state.socket = null;
+                    updateUI();
+                };
+
+            } catch (error) {
+                console.error('❌ Failed to start trading:', error);
+                setError(error instanceof Error ? error.message : 'Unknown error occurred');
+                setStatus('error');
+            } finally {
+                // Reset button state
+                elements.startBtn.disabled = false;
+                elements.startBtn.textContent = 'Start Trading';
+            }
+        }
+
+        // Stop trading
+        async function stopTrading() {
+            try {
+                if (!state.sessionId || state.status === 'idle') {
+                    return;
+                }
+
+                console.log('🛑 Stopping trading session:', state.sessionId);
+                
+                // Close WebSocket connection
+                if (state.socket) {
+                    state.socket.close();
+                    state.socket = null;
+                }
+
+                // Call backend to stop trading
+                const response = await fetch('/api/trading/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: state.sessionId })
+                });
+
+                if (!response.ok) {
+                    console.warn('Warning: Failed to stop trading on backend');
+                }
+
+                setStatus('stopped');
+                setError(null);
+                appendLog('info', `Trading session ${state.sessionId} stopped`);
+
+            } catch (error) {
+                console.error('❌ Failed to stop trading:', error);
+                setError(error instanceof Error ? error.message : 'Unknown error occurred');
+            }
+        }
+
+        // Reset session
+        function resetSession() {
+            if (state.socket) {
+                state.socket.close();
+            }
+            
+            state = {
+                sessionId: null,
+                status: 'idle',
+                symbols: [],
+                ticks: {},
+                logs: [],
+                isLogAutoScroll: true,
+                errorMessage: null,
+                socket: null,
+                tickCount: 0,
+                logCount: 0
+            };
+            
+            updateUI();
+            appendLog('info', 'Session reset');
+        }
+
+        // Update status
+        function setStatus(status) {
+            state.status = status;
+            elements.statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            
+            // Update status dot
+            elements.statusDot.className = `status-dot status-${status}`;
+            
+            // Update button states
+            if (status === 'starting' || status === 'running') {
+                elements.startBtn.classList.add('hidden');
+                elements.stopBtn.classList.remove('hidden');
+            } else {
+                elements.startBtn.classList.remove('hidden');
+                elements.stopBtn.classList.add('hidden');
+            }
+            
+            // Update session info
+            if (status === 'running') {
+                elements.sessionInfo.classList.remove('hidden');
+                elements.resetBtn.classList.remove('hidden');
+            } else {
+                elements.sessionInfo.classList.add('hidden');
+                elements.resetBtn.classList.add('hidden');
+            }
+            
+            updateDevInfo();
+        }
+
+        // Set error
+        function setError(message) {
+            state.errorMessage = message;
+            
+            if (message) {
+                elements.errorBanner.classList.remove('hidden');
+                elements.errorMessage.textContent = message;
+            } else {
+                elements.errorBanner.classList.add('hidden');
+            }
+        }
+
+        // Append tick data
+        function appendTick(symbol, point) {
+            if (!state.ticks[symbol]) {
+                state.ticks[symbol] = [];
+            }
+            
+            state.ticks[symbol].push(point);
+            state.tickCount++;
+            
+            // Keep only the latest 1000 ticks per symbol
+            if (state.ticks[symbol].length > 1000) {
+                state.ticks[symbol] = state.ticks[symbol].slice(-1000);
+            }
+            
+            updateCharts();
+            updateDevInfo();
+        }
+
+        // Append log entry
+        function appendLog(level, message) {
+            const entry = {
+                t: Date.now(),
+                level: level,
+                msg: message
+            };
+            
+            state.logs.push(entry);
+            state.logCount++;
+            
+            // Keep only the latest 500 logs
+            if (state.logs.length > 500) {
+                state.logs = state.logs.slice(-500);
+            }
+            
+            // Update log display
+            updateLogDisplay();
+            
+            // Auto-scroll if enabled
+            if (state.isLogAutoScroll) {
+                elements.logsContainer.scrollTop = elements.logsContainer.scrollHeight;
+            }
+            
+            updateDevInfo();
+        }
+
+        // Update charts
+        function updateCharts() {
+            if (state.symbols.length === 0) return;
+            
+            const chartsHTML = state.symbols.map(symbol => {
+                const symbolTicks = state.ticks[symbol] || [];
+                const hasData = symbolTicks.length > 0;
+                
+                return `
+                    <div class="border border-gray-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-semibold text-gray-900">${symbol}</h3>
+                            ${hasData ? `
+                                <div class="text-sm text-gray-600">
+                                    Latest: $${symbolTicks[symbolTicks.length - 1]?.p?.toFixed(2) || 'N/A'}
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        ${hasData ? `
+                            <div class="chart-container">
+                                <canvas id="chart-${symbol}" width="400" height="200"></canvas>
+                            </div>
+                        ` : `
+                            <div class="h-32 flex items-center justify-center text-gray-400">
+                                <p>Waiting for market data...</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+            
+            elements.chartsContainer.innerHTML = chartsHTML;
+            
+            // Initialize charts if data is available
+            state.symbols.forEach(symbol => {
+                const symbolTicks = state.ticks[symbol] || [];
+                if (symbolTicks.length > 0) {
+                    initializeChart(symbol, symbolTicks);
+                }
+            });
+        }
+
+        // Initialize chart for a symbol
+        function initializeChart(symbol, ticks) {
+            const canvas = document.getElementById(`chart-${symbol}`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            if (ticks.length < 2) return;
+            
+            // Find price range
+            const prices = ticks.map(t => t.p);
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            const priceRange = maxPrice - minPrice;
+            
+            // Draw chart
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            ticks.forEach((tick, index) => {
+                const x = (index / (ticks.length - 1)) * width;
+                const y = height - ((tick.p - minPrice) / priceRange) * height;
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            if (state.logs.length === 0) {
+                elements.logsContainer.innerHTML = '<p class="text-gray-500">No logs yet. Start trading to see live updates.</p>';
+                return;
+            }
+            
+            const logsHTML = state.logs.map(log => `
+                <div class="log-entry">
+                    <span class="log-time">[${new Date(log.t).toLocaleTimeString()}]</span>
+                    <span class="log-${log.level}">[${log.level.toUpperCase()}]</span>
+                    <span class="ml-2">${log.msg}</span>
+                </div>
+            `).join('');
+            
+            elements.logsContainer.innerHTML = logsHTML;
+        }
+
+        // Clear logs
+        function clearLogs() {
+            state.logs = [];
+            state.logCount = 0;
+            updateLogDisplay();
+            updateDevInfo();
+        }
+
+        // Toggle auto-scroll
+        function toggleAutoScroll() {
+            state.isLogAutoScroll = !state.isLogAutoScroll;
+            elements.autoScrollBtn.textContent = state.isLogAutoScroll ? 'Auto-scroll On' : 'Auto-scroll Off';
+            elements.autoScrollBtn.className = state.isLogAutoScroll 
+                ? 'px-3 py-1 bg-blue-600 text-white rounded text-sm'
+                : 'px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm';
+        }
+
+        // Update UI
+        function updateUI() {
+            if (state.sessionId) {
+                elements.sessionId.textContent = state.sessionId;
+            }
+        }
+
+        // Update dev info
+        function updateDevInfo() {
+            elements.devSessionId.textContent = state.sessionId || 'None';
+            elements.devStatus.textContent = state.status;
+            elements.devSymbols.textContent = state.symbols.join(', ') || 'None';
+            elements.devWebsocket.textContent = state.socket ? 'Connected' : 'Disconnected';
+            elements.devTicks.textContent = state.tickCount;
+            elements.devLogs.textContent = state.logCount;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>

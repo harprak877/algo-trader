@@ -1,0 +1,54 @@
+api:
+  alpaca:
+    api_key: PKDYSVBI4K5NRGAAFEBR
+    base_url: https://paper-api.alpaca.markets/v2
+    secret_key: 2NQHjaA2tZ02r0o2B44cpETceree7nuItn2FfOQ2
+backtest:
+  commission: 0.0
+  end_date: '2024-01-01'
+  start_date: '2023-01-01'
+capital:
+  fixed_dollar_amount: 10000
+  initial_balance: 100000
+  position_size_type: percentage
+live:
+  poll_seconds: 60
+logging:
+  console_colors: true
+  level: INFO
+  metrics_file: metrics.csv
+  trade_log_file: trade_log.csv
+metrics:
+  benchmark_symbol: SPY
+  risk_free_rate: 0.0
+notifications:
+  email:
+    enabled: false
+    password: ''
+    recipient: ''
+    smtp_port: 587
+    smtp_server: ''
+    username: ''
+  telegram:
+    bot_token: ''
+    chat_id: ''
+    enabled: false
+reporting:
+  auto_generate: true
+  enabled: true
+  include_charts: true
+  report_dir: reports
+risk:
+  max_positions: 1
+  position_size_pct: 0.25
+  stop_loss_pct: 0.03
+  take_profit_pct: 0.06
+strategy:
+  data_interval: 1d
+  history_days: 1000
+  long_sma: 50
+  short_sma: 20
+symbols:
+- AAPL
+- TSLA
+- SPY

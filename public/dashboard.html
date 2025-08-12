@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Trading Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-running { background-color: #10b981; }
+        .status-stopped { background-color: #ef4444; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen p-8">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-4xl font-bold text-gray-900 mb-8">🚀 Live Trading Dashboard</h1>
+            
+            <!-- Status Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Cash</h3>
+                    <p id="cash-amount" class="text-3xl font-bold text-blue-600">$0</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Equity</h3>
+                    <p id="equity-amount" class="text-3xl font-bold text-green-600">$0</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Daily P&L</h3>
+                    <p id="daily-pnl" class="text-3xl font-bold text-gray-600">$0</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Bot Status</h3>
+                    <div class="flex items-center space-x-2">
+                        <div id="status-dot" class="status-dot status-stopped"></div>
+                        <span id="bot-status" class="text-lg font-medium capitalize">stopped</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Controls -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Trading Controls</h2>
+                <div class="flex flex-wrap gap-4 items-center">
+                    <input
+                        type="text"
+                        id="symbols-input"
+                        value="AAPL,TSLA,SPY"
+                        placeholder="AAPL,TSLA,SPY"
+                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <button
+                        id="start-trading-btn"
+                        class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                        Start Trading
+                    </button>
+                    <button
+                        id="stop-trading-btn"
+                        class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        Stop Trading
+                    </button>
+                    <button
+                        id="refresh-btn"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Refresh Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Trades -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Recent Trades</h2>
+                <div id="trades-container">
+                    <p class="text-gray-600">No recent trades</p>
+                </div>
+            </div>
+
+            <!-- Live Data -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Live Data</h2>
+                <div id="live-data" class="text-sm text-gray-600">
+                    <p>Click "Refresh Data" to fetch live trading data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dashboard functionality
+        let dashboardData = null;
+        let autoRefreshInterval = null;
+
+        // Initialize dashboard
+        function initDashboard() {
+            console.log('Initializing dashboard...');
+            
+            // Add event listeners
+            document.getElementById('start-trading-btn').addEventListener('click', startLiveTrading);
+            document.getElementById('stop-trading-btn').addEventListener('click', stopLiveTrading);
+            document.getElementById('refresh-btn').addEventListener('click', fetchDashboardData);
+            
+            // Initial data fetch
+            fetchDashboardData();
+            
+            // Set up auto-refresh every 10 seconds
+            autoRefreshInterval = setInterval(fetchDashboardData, 10000);
+        }
+
+        // Fetch dashboard data
+        async function fetchDashboardData() {
+            try {
+                console.log('Fetching dashboard data...');
+                const response = await fetch('/api/dashboard');
+                const data = await response.json();
+                console.log('Dashboard data:', data);
+                
+                dashboardData = data;
+                updateDashboard(data);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+                updateLiveData('Error fetching data: ' + error.message);
+            }
+        }
+
+        // Start live trading
+        async function startLiveTrading() {
+            try {
+                const symbolsInput = document.getElementById('symbols-input');
+                const symbols = symbolsInput.value;
+                const symbolsArray = symbols.split(',').map(s => s.trim());
+                
+                console.log('Starting live trading with symbols:', symbolsArray);
+                
+                const response = await fetch('/api/live/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbols: symbolsArray })
+                });
+                
+                const result = await response.json();
+                console.log('Live trading started:', result);
+                
+                updateLiveData('Live trading started successfully!');
+                fetchDashboardData();
+                
+            } catch (error) {
+                console.error('Error starting live trading:', error);
+                updateLiveData('Error starting live trading: ' + error.message);
+            }
+        }
+
+        // Stop live trading
+        async function stopLiveTrading() {
+            try {
+                console.log('Stopping live trading...');
+                
+                const response = await fetch('/api/live/stop', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                console.log('Live trading stopped:', result);
+                
+                updateLiveData('Live trading stopped successfully!');
+                fetchDashboardData();
+                
+            } catch (error) {
+                console.error('Error stopping live trading:', error);
+                updateLiveData('Error stopping live trading: ' + error.message);
+            }
+        }
+
+        // Update dashboard display
+        function updateDashboard(data) {
+            // Update status cards
+            const cashElement = document.getElementById('cash-amount');
+            const equityElement = document.getElementById('equity-amount');
+            const dailyPnlElement = document.getElementById('daily-pnl');
+            const statusElement = document.getElementById('bot-status');
+            const statusDotElement = document.getElementById('status-dot');
+            
+            if (cashElement) {
+                cashElement.textContent = `$${data?.account?.cash?.toLocaleString() || '0'}`;
+            }
+            
+            if (equityElement) {
+                equityElement.textContent = `$${data?.account?.equity?.toLocaleString() || '0'}`;
+            }
+            
+            if (dailyPnlElement) {
+                const pnl = data?.daily_pnl || 0;
+                dailyPnlElement.textContent = `$${pnl.toLocaleString()}`;
+                dailyPnlElement.className = `text-3xl font-bold ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`;
+            }
+            
+            if (statusElement) {
+                statusElement.textContent = data?.bot_status?.status || 'stopped';
+            }
+            
+            if (statusDotElement) {
+                const status = data?.bot_status?.status || 'stopped';
+                statusDotElement.className = `status-dot ${status === 'running' ? 'status-running' : 'status-stopped'}`;
+            }
+            
+            // Update trades
+            updateTrades(data?.recent_trades || []);
+            
+            // Update live data
+            updateLiveData('Data refreshed at ' + new Date().toLocaleTimeString());
+        }
+
+        // Update trades display
+        function updateTrades(trades) {
+            const tradesContainer = document.getElementById('trades-container');
+            if (!tradesContainer) return;
+            
+            if (trades.length === 0) {
+                tradesContainer.innerHTML = '<p class="text-gray-600">No recent trades</p>';
+                return;
+            }
+            
+            const tradesHTML = trades.slice(0, 5).map((trade, index) => `
+                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span class="font-medium">${trade.symbol || 'Unknown'}</span>
+                    <span class="font-medium ${trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl?.toLocaleString() || '0'}
+                    </span>
+                    <span class="text-gray-500">${trade.action || 'Unknown'}</span>
+                </div>
+            `).join('');
+            
+            tradesContainer.innerHTML = tradesHTML;
+        }
+
+        // Update live data display
+        function updateLiveData(message) {
+            const liveDataElement = document.getElementById('live-data');
+            if (liveDataElement) {
+                liveDataElement.innerHTML = `
+                    <p class="text-green-600">${message}</p>
+                    <p class="text-gray-500 mt-2">Last updated: ${new Date().toLocaleTimeString()}</p>
+                `;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>

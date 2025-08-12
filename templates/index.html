@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading {
+            display: none;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-lg p-6 mb-8">
+            <h1 class="text-3xl font-bold">Trading Bot Dashboard</h1>
+            <p class="text-lg opacity-90">Automated Trading with SMA Crossover Strategy</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Account Summary -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Account Summary</h2>
+                <div id="accountInfo" class="space-y-2">
+                    <p>Loading account information...</p>
+                </div>
+            </div>
+
+            <!-- Trading Controls -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Trading Controls</h2>
+                
+                <!-- Backtest Form -->
+                <form id="backtestForm" class="mb-6">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Start Date</label>
+                            <input type="date" name="start_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">End Date</label>
+                            <input type="date" name="end_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                        Run Backtest
+                    </button>
+                </form>
+
+                <!-- Live Trading Form -->
+                <form id="liveForm" class="mb-6">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Trading Symbols (comma-separated)</label>
+                        <input type="text" name="symbols" placeholder="AAPL,TSLA,SPY" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700">
+                        Start Live Trading
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Positions -->
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Current Positions</h2>
+            <div id="positions" class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Price</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Market Value</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unrealized P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="positionsBody">
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading positions...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reports -->
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Trading Reports</h2>
+            <div id="reports" class="space-y-4">
+                <p class="text-gray-500">Loading reports...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Utility function to format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(value);
+        }
+
+        // Utility function to format percentage
+        function formatPercent(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'percent',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value / 100);
+        }
+
+        // Update account information
+        async function updateAccountInfo() {
+            try {
+                const response = await fetch('/positions');
+                const data = await response.json();
+                
+                const account = data.account;
+                document.getElementById('accountInfo').innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Cash Balance</p>
+                            <p class="text-lg font-semibold">${formatCurrency(account.cash)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Buying Power</p>
+                            <p class="text-lg font-semibold">${formatCurrency(account.buying_power)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Portfolio Value</p>
+                            <p class="text-lg font-semibold">${formatCurrency(account.equity)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Positions</p>
+                            <p class="text-lg font-semibold">${account.positions_count}</p>
+                        </div>
+                    </div>
+                `;
+
+                // Update positions table
+                const positions = data.positions;
+                document.getElementById('positionsBody').innerHTML = positions.length ? positions.map(pos => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${pos.symbol}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${pos.quantity}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(pos.avg_price)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(pos.market_value)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${pos.unrealized_pnl >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(pos.unrealized_pnl)}</td>
+                    </tr>
+                `).join('') : `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">No open positions</td>
+                    </tr>
+                `;
+            } catch (error) {
+                console.error('Error fetching account info:', error);
+            }
+        }
+
+        // Update reports list
+        async function updateReports() {
+            try {
+                const response = await fetch('/reports');
+                const data = await response.json();
+                
+                document.getElementById('reports').innerHTML = data.reports.length ? `
+                    <div class="space-y-2">
+                        ${data.reports.map(report => `
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                <div>
+                                    <p class="font-medium">${report.name}</p>
+                                    <p class="text-sm text-gray-500">${new Date(report.date).toLocaleString()}</p>
+                                </div>
+                                <a href="${report.url}" target="_blank" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                                    View Report
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<p class="text-gray-500">No reports available</p>';
+            } catch (error) {
+                console.error('Error fetching reports:', error);
+            }
+        }
+
+        // Handle backtest form submission
+        document.getElementById('backtestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('/backtest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        start_date: formData.get('start_date'),
+                        end_date: formData.get('end_date')
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('Backtest started successfully!');
+                    setTimeout(updateReports, 5000);  // Update reports after 5 seconds
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('Error running backtest:', error);
+                alert('Failed to start backtest');
+            }
+        });
+
+        // Handle live trading form submission
+        document.getElementById('liveForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const symbols = formData.get('symbols').split(',').map(s => s.trim());
+            
+            try {
+                const response = await fetch('/live', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ symbols })
+                });
+                
+                if (response.ok) {
+                    alert('Live trading started successfully!');
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('Error starting live trading:', error);
+                alert('Failed to start live trading');
+            }
+        });
+
+        // Update data periodically
+        setInterval(updateAccountInfo, 5000);
+        setInterval(updateReports, 30000);
+
+        // Initial update
+        updateAccountInfo();
+        updateReports();
+    </script>
+</body>
+</html>
