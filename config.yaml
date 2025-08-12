@@ -1,0 +1,66 @@
+# Trading Bot Configuration
+
+# API Configuration
+api:
+  alpaca:
+    base_url: "https://paper-api.alpaca.markets"  # Paper trading endpoint
+    api_key: ""  # Set your Alpaca API key
+    secret_key: ""  # Set your Alpaca secret key
+  
+# Trading Strategy Parameters
+strategy:
+  short_sma: 20  # Short-term Simple Moving Average period
+  long_sma: 50   # Long-term Simple Moving Average period
+  data_interval: "1m"  # 1m, 5m, 15m, 30m, 1h, 1d
+  
+# Symbols to Trade
+symbols:
+  - "AAPL"
+  - "TSLA"
+  - "SPY"
+
+# Risk Management
+risk:
+  stop_loss_pct: 0.03      # 3% stop loss
+  take_profit_pct: 0.06    # 6% take profit
+  position_size_pct: 0.25  # 25% of capital per trade
+  max_positions: 1         # Maximum positions per symbol
+  
+# Capital Settings
+capital:
+  initial_balance: 100000  # Starting capital for paper trading
+  position_size_type: "percentage"  # "percentage" or "fixed_dollar"
+  fixed_dollar_amount: 10000  # Used if position_size_type is "fixed_dollar"
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  trade_log_file: "trade_log.csv"
+  metrics_file: "metrics.csv"
+  console_colors: true
+  
+# Backtesting Settings
+backtest:
+  start_date: "2023-01-01"
+  end_date: "2024-01-01"
+  commission: 0.0  # Commission per trade (0 for paper trading)
+  
+# Performance Metrics
+metrics:
+  risk_free_rate: 0.0  # Risk-free rate for Sharpe ratio calculation
+  benchmark_symbol: "SPY"  # Benchmark for comparison
+  
+# Notification Settings (Optional)
+notifications:
+  email:
+    enabled: false
+    smtp_server: ""
+    smtp_port: 587
+    username: ""
+    password: ""
+    recipient: ""
+  
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
